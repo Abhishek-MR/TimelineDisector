@@ -45,7 +45,7 @@ class Date {
   }
 
   getNoOfMonthsTillNewYear () {
-    return 12 - this.month
+    return 12 + 1 - this.month
   }
 
   getNoOfWeeksTillNewMonth () {
@@ -108,10 +108,10 @@ class Date {
   }
 
   isValid () {
-    if (this.month < 1 || this.month > 12)  return false
+    if (this.month < 1 || this.month > 12) return false
     if (this.day < 1 || this.day > this.getNumOfDaysInMonth(this)) return false
     if (this.year < 1) return false
-    return true;
+    return true
   }
 }
 
@@ -194,14 +194,15 @@ function tryAddingWeek (timePeriods, dateTemp, dateEnd) {
   if ((dateTemp.day - 1) % 7 == 0) {
     var noOfWeeks = 0
 
-    //Check how many weeks till new month
-    if (dateEnd.month > dateTemp.month) {
-      noOfWeeks = dateTemp.getNoOfWeeksTillNewMonth()
-    }
     //Check how many weeks till required week
-    else {
+    if (dateEnd.year == dateTemp.year && dateEnd.month == dateTemp.month) {
       noOfWeeks = dateTemp.getNoOfWeeksTill(dateEnd)
     }
+    //Check how many weeks till new month
+    else {
+      noOfWeeks = dateTemp.getNoOfWeeksTillNewMonth()
+    }
+
     if (noOfWeeks > 0) {
       timePeriods.push(
         TimePeriod.compute(TimePeriod.Type.WEEKS, dateTemp, noOfWeeks)
@@ -211,6 +212,45 @@ function tryAddingWeek (timePeriods, dateTemp, dateEnd) {
     }
   }
   return false
+}
+
+function tryAddingDays (timePeriods, dateTemp, dateEnd) {
+  //Check how many days till new week
+  var noOfDays = 0
+
+  //if its the same week then add only that many days
+  if (
+    dateEnd.year == dateTemp.year &&
+    dateEnd.month == dateTemp.month &&
+    parseInt((dateEnd.day - 1) / 7) == parseInt((dateTemp.day - 1) / 7)
+  ) {
+    noOfDays = dateEnd.day - dateTemp.day
+  } else {
+    noOfDays = 7 - ((dateEnd.day - 1) % 7)
+  }
+
+  if (noOfDays > 0) {
+    timePeriods.push(
+      TimePeriod.compute(TimePeriod.Type.DAYS, dateTemp, noOfDays)
+    )
+    dateTemp.addDays(noOfDays)
+  }
+}
+
+function condense (timePeriods) {
+  if (timePeriods.length < 2) return timePeriods
+  var timePeriodsCondensed = []
+  var prev = timePeriods[0]
+  for (var i = 1; i < timePeriods.length; i++) {
+    if (prev.type != timePeriods[i].type) {
+      timePeriodsCondensed.push(prev)
+      prev = timePeriods[i]
+    } else {
+      prev.end = timePeriods[i].end
+    }
+  }
+  timePeriodsCondensed.push(prev)
+  return timePeriodsCondensed
 }
 
 exports.Date = Date
@@ -234,13 +274,10 @@ exports.solve = (dateStart, dateEnd) => {
     if (!tryAddingYear(timePeriods, dateTemp, dateEnd)) {
       if (!tryAddingMonth(timePeriods, dateTemp, dateEnd)) {
         if (!tryAddingWeek(timePeriods, dateTemp, dateEnd)) {
-          timePeriods.push(
-            TimePeriod.compute(TimePeriod.Type.DAYS, dateTemp, 1)
-          )
-          dateTemp.addDays(1)
+          tryAddingDays(timePeriods, dateTemp, dateEnd)
         }
       }
     }
   }
-  return timePeriods
+  return condense(timePeriods)
 }
