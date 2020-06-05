@@ -25,15 +25,15 @@ class Date {
     return new Date(date.day, date.month, date.year)
   }
 
-  getNumOfDaysInMonth (date) {
-    if (date.month == 2) {
-      if (this.isLeapYear(date)) return 29
+  getNumOfDaysInMonth () {
+    if (this.month == 2) {
+      if (this.isLeapYear()) return 29
     }
-    return monthDays[date.month]
+    return monthDays[this.month]
   }
 
-  isLeapYear (d) {
-    return (d.year & 3) == 0 && (d.year % 100 != 0 || d.year % 400 == 0)
+  isLeapYear () {
+    return (this.year & 3) == 0 && (this.year % 100 != 0 || this.year % 400 == 0)
   }
 
   getNoOfNewYearsTill (newDate) {
@@ -49,9 +49,9 @@ class Date {
   }
 
   getNoOfWeeksTillNewMonth () {
-    var daysInThisMonth = this.getNumOfDaysInMonth(this)
+    var daysInThisMonth = this.getNumOfDaysInMonth()
     var weekno = parseInt((this.day - 1) / 7)
-    var noOfWeeks = parseInt((daysInThisMonth - 1) / 7)
+    var noOfWeeks = Math.ceil((daysInThisMonth - 1) / 7)
     return noOfWeeks - weekno
   }
 
@@ -76,16 +76,16 @@ class Date {
 
   addWeeks (weeks) {
     for (var i = 0; i < weeks; i++) {
-      var daysInThisMonth = this.getNumOfDaysInMonth(this)
-      if (this.day + 7 <= daysInThisMonth) this.addDays(7)
-      else this.addDays(daysInThisMonth - this.day)
+      var daysInThisMonth = this.getNumOfDaysInMonth()
+      if (this.day + 7 < daysInThisMonth) this.addDays(7)
+      else this.addDays(daysInThisMonth - this.day + 1)
     }
   }
 
   addDays (numOfDays) {
     this.day += numOfDays
-    while (this.day > this.getNumOfDaysInMonth(this)) {
-      this.day = this.day - this.getNumOfDaysInMonth(this)
+    while (this.day > this.getNumOfDaysInMonth()) {
+      this.day = this.day - this.getNumOfDaysInMonth()
       this.addMonths(1)
     }
   }
@@ -109,7 +109,7 @@ class Date {
 
   isValid () {
     if (this.month < 1 || this.month > 12) return false
-    if (this.day < 1 || this.day > this.getNumOfDaysInMonth(this)) return false
+    if (this.day < 1 || this.day > this.getNumOfDaysInMonth()) return false
     if (this.year < 1) return false
     return true
   }
@@ -226,7 +226,10 @@ function tryAddingDays (timePeriods, dateTemp, dateEnd) {
   ) {
     noOfDays = dateEnd.day - dateTemp.day
   } else {
-    noOfDays = 7 - ((dateEnd.day - 1) % 7)
+    noOfDays =
+      dateTemp.day > 28
+        ? dateTemp.getNumOfDaysInMonth() - 28 - ((dateTemp.day - 1) % 7)
+        : 7 - ((dateEnd.day - 1) % 7)
   }
 
   if (noOfDays > 0) {
@@ -264,8 +267,7 @@ function condense (timePeriods) {
 
   for (var i = 1; i < timePeriods.length; i++) {
     var top = stack.peek()
-    if (top.type != timePeriods[i].type)
-      stack.push(timePeriods[i])
+    if (top.type != timePeriods[i].type) stack.push(timePeriods[i])
     else {
       top.dateEnd = timePeriods[i].dateEnd
       stack.pop()
@@ -292,6 +294,9 @@ exports.solve = (dateStart, dateEnd) => {
     console.log('start date beyond end date')
     return []
   }
+
+  //HERE IF YOU WANT TO INCLUDE LAST DAY, UNCOMMENT THIS
+  // dateEnd.addDays(1)
 
   dateTemp = Date.copyOf(dateStart)
   timePeriods = []
