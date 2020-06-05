@@ -237,20 +237,47 @@ function tryAddingDays (timePeriods, dateTemp, dateEnd) {
   }
 }
 
+class Stack {
+  constructor () {
+    this.items = []
+  }
+  push (element) {
+    this.items.push(element)
+  }
+  pop () {
+    if (this.items.length == 0) return null
+    return this.items.pop()
+  }
+  peek () {
+    return this.items[this.items.length - 1]
+  }
+  isEmpty () {
+    return this.items.length == 0
+  }
+}
+
 function condense (timePeriods) {
   if (timePeriods.length < 2) return timePeriods
-  var timePeriodsCondensed = []
-  var prev = timePeriods[0]
+
+  var stack = new Stack()
+  stack.push(timePeriods[0])
+
   for (var i = 1; i < timePeriods.length; i++) {
-    if (prev.type != timePeriods[i].type) {
-      timePeriodsCondensed.push(prev)
-      prev = timePeriods[i]
-    } else {
-      prev.end = timePeriods[i].end
+    var top = stack.peek()
+    if (top.type != timePeriods[i].type)
+      stack.push(timePeriods[i])
+    else {
+      top.dateEnd = timePeriods[i].dateEnd
+      stack.pop()
+      stack.push(top)
     }
   }
-  timePeriodsCondensed.push(prev)
-  return timePeriodsCondensed
+
+  var condensedTimeline = []
+  while (!stack.isEmpty()) {
+    condensedTimeline.push(stack.pop())
+  }
+  return condensedTimeline.reverse()
 }
 
 exports.Date = Date
